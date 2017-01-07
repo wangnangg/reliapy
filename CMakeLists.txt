@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 14)
 
 include_directories(/usr/include/python3.5m
         relia)
-
+add_definitions(-DLOG_LEVEL_2)
 set(SOURCE_FILES
         API_wrap.cxx
         API.cpp

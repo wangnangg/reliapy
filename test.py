@@ -34,6 +34,7 @@ def test2():
     print(pn.get_inst_reward("up"))
 
     pn.add_inst_reward_func("down",lambda x : x.token("p2"))
+    pn.set_option(steady_state_method="power")
     pn.solve()
     print("up:", pn.get_inst_reward("up"))
     print("down:", pn.get_inst_reward("down"))
@@ -54,7 +55,11 @@ def test3():
                      in_arc=["p2"],
                      out_arc=["p3"])
     pn.set_init_token("p1", 1)
-    pn.add_inst_reward_func("all", lambda x: x.token("p1"))
+    pn.add_inst_reward_func("all", lambda x: x.token("p3"))
+    pn.set_option(steady_state_method="power")
+    pn.solve()
+    print(pn.get_inst_reward("all"))
+    pn.set_option(steady_state_method="sor")
     pn.solve()
     print(pn.get_inst_reward("all"))
     pn.dispose()
@@ -67,4 +72,4 @@ def test_molloys():
                      out_arc=[("p1", 1),
                               ("p2", 1)])
 
-test2()
+test3()

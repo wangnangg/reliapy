@@ -3,12 +3,13 @@
 //
 #ifndef RELIA_API_H
 #define RELIA_API_H
+
 #include <Python.h>
 
-
-
 void *create_petri_net(PyObject *wrap_context_func);
+
 void delete_petri_net(void *pn_ptr);
+
 unsigned int add_transition(void *pn_ptr, int pytype, /*0 for imme, 1 for exp*/
                             PyObject *pyguard_func,
                             double pyparam, PyObject *pyparam_func,
@@ -19,10 +20,27 @@ void add_arc(void *pn_ptr, int arc_type, /*0 for in, 1 for out, 2 for inhibitor*
              unsigned int pymulti, PyObject *pymulti_func);
 
 void set_init_token(void *pn_ptr, unsigned int place_index, unsigned int token_num);
-unsigned int add_inst_reward(void *pn_ptr, PyObject* pyreward_func);
+
+unsigned int add_inst_reward(void *pn_ptr, PyObject *pyreward_func);
+
 bool solve_steady_state(void *pn_ptr);
+
 double get_inst_reward(void *pn_ptr, unsigned int reward_index);
-unsigned int get_token_num(PyObject* wrapped_context, unsigned int place_index);
-bool is_trans_enabled(PyObject* wrapped_context, unsigned int trans_index);
-bool has_enbaled_trans(PyObject* wrapped_context);
+
+unsigned int get_token_num(PyObject *wrapped_context, unsigned int place_index);
+
+bool is_trans_enabled(PyObject *wrapped_context, unsigned int trans_index);
+
+bool has_enbaled_trans(PyObject *wrapped_context);
+
+void option_set_ss_method(void *pn_ptr, int method);
+
+void option_set_ts_method(void *pn_ptr, int method);
+
+void option_set_sor_omega(void *pn_ptr, double omega);
+
+void option_set_max_iter(void *pn_ptr, unsigned int iter);
+
+void option_set_precision(void *pn_ptr, double prec);
+
 #endif //RELIA_API_H

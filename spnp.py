@@ -1,7 +1,11 @@
 #!/usr/bin/python3
 import reliapy
 
+
+
 class PetriNet:
+    ss_method =  ["auto", "sor", "power"]
+    ts_method = ["auto"]
     def __init__(self):
         self.pn_ptr = reliapy.create_petri_net(self.__wrap_context)
         self.place_map = {}
@@ -12,6 +16,28 @@ class PetriNet:
         reliapy.delete_petri_net(self.pn_ptr)
     def __wrap_context(self, __context):
         return PetriNetState(__context, self.place_map, self.trans_map)
+
+    def set_option(self, *, steady_state_method="auto",
+                            transient_state_method="auto",
+                            max_iteration=10000,
+                            precision=1e-10,
+                            sor_omega=1.0
+                            ):
+        try:
+            index = PetriNet.ss_method.index(steady_state_method)
+        except:
+            raise Exception("Unknown steady state method. Candidates are: " + str(PetriNet.ss_method))
+        reliapy.option_set_ss_method(self.pn_ptr, index)
+
+        try:
+            index = PetriNet.ts_method.index(transient_state_method)
+        except:
+            raise Exception("Unknown steady state method. Candidates care: " + str(PetriNet.ts_method))
+        reliapy.option_set_ts_method(self.pn_ptr, index)
+
+        reliapy.option_set_max_iter(self.pn_ptr, max_iteration)
+        reliapy.option_set_precision(self.pn_ptr, precision)
+        reliapy.option_set_sor_omega(self.pn_ptr, sor_omega)
 
     def add_place(self, name):
         self.place_map[name] = self.place_count
@@ -70,7 +96,8 @@ class PetriNet:
 
     def solve(self):
         result = reliapy.solve_steady_state(self.pn_ptr)
-        return result
+        if not result:
+            raise Exception("precision not reached.")
 
 
 

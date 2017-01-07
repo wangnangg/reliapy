@@ -12,7 +12,6 @@ void *create_petri_net(PyObject *wrap_context_func)
     PetriNetSolution *pn = new PetriNetSolution();
     Py_INCREF(wrap_context_func);
     pn->tag = wrap_context_func;
-    std::cout << "create petri net solution:" << pn << std::endl;
     return pn;
 }
 
@@ -21,7 +20,6 @@ void delete_petri_net(void *pn_ptr)
     PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
     PyObject *wrap_context_func = (PyObject *) pn->tag;
     Py_DECREF(wrap_context_func);
-    std::cout << "delete petri net:" << pn << std::endl;
     delete pn;
 }
 
@@ -123,10 +121,6 @@ unsigned int add_transition(void *pn_ptr, int pytype, /*0 for imme, 1 for exp*/
         param = wrapped_param_func;
     }
     unsigned int index = pn->petri_net.add_transition((TransType) pytype, guard, param, priority);
-    std::cout << "add transition: type:" << pytype <<
-              ", guard:" << guard.get_type() <<
-              ", param:" << param.get_type() <<
-              ", priority:" << priority << std::endl;
     return index;
 }
 
@@ -146,19 +140,12 @@ void add_arc(void *pn_ptr, int arc_type, /*0 for in, 1 for out, 2 for inhibitor*
         multi = wrapped_multi;
     }
     pn->petri_net.add_arc((ArcType) arc_type, trans_index, place_index, multi);
-
-    std::cout << "add arc: type:" << arc_type <<
-              ", trans_index:" << trans_index <<
-              ", place_index:" << place_index <<
-              ", multi:" << multi.get_type() << std::endl;
 }
 
 void set_init_token(void *pn_ptr, unsigned int place_index, unsigned int token_num)
 {
     PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
     pn->petri_net.set_init_token(place_index, token_num);
-
-    std::cout << "set init token: " << place_index << ", " << token_num << std::endl;
 }
 
 unsigned int add_inst_reward(void *pn_ptr, PyObject *pyreward_func)
@@ -166,17 +153,14 @@ unsigned int add_inst_reward(void *pn_ptr, PyObject *pyreward_func)
     PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
     PyCallBack<double> wrapped_reward_func((PyObject *) pn->tag, pyreward_func);
     unsigned int index = pn->add_inst_reward_func(wrapped_reward_func);
-    std::cout << "add inst reward: " << index << std::endl;
     return index;
 }
 
 bool solve_steady_state(void *pn_ptr)
 {
-    std::cout << "start solve" << std::endl;
     PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
     pn->petri_net.finalize();
     auto stop_conditoin = pn->solve_steady_state();
-    std::cout << "solved in :" << stop_conditoin.get_used_iter() << std::endl;
     return stop_conditoin.is_precision_reached();
 }
 
@@ -184,7 +168,6 @@ double get_inst_reward(void *pn_ptr, unsigned int reward_index)
 {
     PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
     double reward = pn->get_inst_reward(reward_index);
-    std::cout << "reward:" << reward_index << ", " << reward << std::endl;
     return reward;
 }
 
@@ -206,5 +189,34 @@ bool has_enbaled_trans(PyObject *wrapped_context)
     return context->petri_net->has_enabled_trans(context);
 }
 
+void option_set_ss_method(void *pn_ptr, int method)
+{
+    PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
+    pn->set_ss_method((Option::SSMethod)method);
+}
 
+void option_set_ts_method(void *pn_ptr, int method)
+{
+    PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
+    pn->set_ts_method((Option::TSMethod)method);
+}
+
+void option_set_sor_omega(void *pn_ptr, double omega)
+{
+    PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
+    pn->set_sor_omega(omega);
+}
+
+void option_set_max_iter(void *pn_ptr, unsigned int iter)
+{
+    PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
+    pn->set_max_iter(iter);
+
+}
+
+void option_set_precision(void *pn_ptr, double prec)
+{
+    PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
+    pn->set_precision(prec);
+}
 
