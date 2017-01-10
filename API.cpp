@@ -23,6 +23,7 @@ void delete_petri_net(void *pn_ptr)
     delete pn;
 }
 
+
 template<typename T>
 T ConvertBasicTypeFromPy(PyObject *obj);
 
@@ -32,20 +33,31 @@ double ConvertBasicTypeFromPy(PyObject *obj)
     if (PyLong_CheckExact(obj))
     {
         return PyLong_AsDouble(obj);
+    }else if (PyFloat_CheckExact(obj))
+    {
+        return PyFloat_AsDouble(obj);
     }
-    return PyFloat_AsDouble(obj);
+    throw Exception("Error. Expecting a Float value from callback function.");
 }
 
 template<>
 bool ConvertBasicTypeFromPy(PyObject *obj)
 {
-    return PyObject_IsTrue(obj);
+    if(PyBool_Check(obj))
+    {
+        return PyObject_IsTrue(obj);
+    }
+    throw Exception("Error. Expecting a Bool value from callback function.");
 }
 
 template<>
 unsigned int ConvertBasicTypeFromPy(PyObject *obj)
 {
-    return PyLong_AsUnsignedLong(obj);
+    if(PyLong_CheckExact(obj))
+    {
+        return PyLong_AsUnsignedLong(obj);
+    }
+    throw Exception("Error. Expecting a Integer value from callback function.");
 }
 
 template<typename RetType>
@@ -72,8 +84,13 @@ public:
         other.wrap_context_func = NULL;
     }
 
+
     PyCallBack(PyObject *wrap_context, PyObject *callback) : callback_func(callback), wrap_context_func(wrap_context)
     {
+        if(!PyCallable_Check(callback))
+        {
+           throw Exception("Callback function is not callable.");
+        }
         Py_INCREF(callback_func);
         Py_INCREF(wrap_context_func);
     }
@@ -84,13 +101,24 @@ public:
         Py_XDECREF(wrap_context_func);
     }
 
+    PyCallBack& operator=(const PyObject &other) = delete;
+    PyCallBack& operator=(PyObject &&other) = delete;
+
     RetType operator()(PetriNetContext *context)
     {
         PyObject *capsule = PyCapsule_New(context, NULL, NULL);
         PyObject *wrap_func_arg = Py_BuildValue("(O)", capsule);
         PyObject *wrapped_state = PyEval_CallObject(wrap_context_func, wrap_func_arg);
+        Py_DECREF(wrap_func_arg);
         PyObject *callback_func_arg = Py_BuildValue("(O)", wrapped_state);
         PyObject *callback_result = PyEval_CallObject(callback_func, callback_func_arg);
+        Py_DECREF(callback_func_arg);
+        Py_DECREF(wrapped_state);
+        Py_DECREF(capsule);
+        if(callback_result == NULL)
+        {//exception happened
+            throw Exception("Exception happened in callback function.");
+        }
         RetType result = ConvertBasicTypeFromPy<RetType>(callback_result);
         return result;
     }
@@ -99,7 +127,7 @@ public:
 unsigned int add_transition(void *pn_ptr, int pytype, /*0 for imme, 1 for exp*/
                             PyObject *pyguard_func,
                             double pyparam, PyObject *pyparam_func,
-                            unsigned int priority)
+                            unsigned int priority) throw(Exception)
 {
     PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
     ConstOrVar<bool> guard;
@@ -127,7 +155,7 @@ unsigned int add_transition(void *pn_ptr, int pytype, /*0 for imme, 1 for exp*/
 
 void add_arc(void *pn_ptr, int arc_type, /*0 for in, 1 for out, 2 for inhibitor*/
              unsigned int trans_index, unsigned int place_index,
-             unsigned int pymulti, PyObject *pymulti_func)
+             unsigned int pymulti, PyObject *pymulti_func) throw(Exception)
 {
     PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
     ConstOrVar<unsigned int> multi;
@@ -149,13 +177,14 @@ void set_init_token(void *pn_ptr, unsigned int place_index, unsigned int token_n
 }
 
 //TODO: convergence feedback
-bool solve_steady_state(void *pn_ptr)
+bool solve_steady_state(void *pn_ptr)throw(Exception)
 {
     PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
     pn->petri_net.finalize();
     pn->solve_steady_state();
     return true;
 }
+
 
 
 unsigned int get_token_num(PyObject *wrapped_context, unsigned int place_index)
@@ -207,14 +236,14 @@ void option_set_precision(void *pn_ptr, double prec)
     pn->set_precision(prec);
 }
 
-unsigned int add_inst_reward(void *pn_ptr, PyObject *pyreward_func)
+unsigned int add_inst_reward(void *pn_ptr, PyObject *pyreward_func) throw(Exception)
 {
     PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
     PyCallBack<double> wrapped_reward_func((PyObject *) pn->tag, pyreward_func);
     unsigned int index = pn->add_inst_reward_func(wrapped_reward_func);
     return index;
 }
-unsigned int add_cum_reward(void *pn_ptr, PyObject *pyreward_func)
+unsigned int add_cum_reward(void *pn_ptr, PyObject *pyreward_func)throw(Exception)
 {
     PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
     PyCallBack<double> wrapped_reward_func((PyObject *) pn->tag, pyreward_func);
@@ -238,7 +267,7 @@ double get_cum_reward(void *pn_ptr, unsigned int reward_index)
     return reward;
 }
 
-void set_halt_condition(void *pn_ptr, PyObject *halt_cond_func)
+void set_halt_condition(void *pn_ptr, PyObject *halt_cond_func)throw(Exception)
 {
     PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
     PyCallBack<bool> wrapped_halt_func((PyObject *) pn->tag, halt_cond_func);

@@ -5,7 +5,7 @@
 #define RELIA_API_H
 
 #include <Python.h>
-
+#include "Type.h"
 void *create_petri_net(PyObject *wrap_context_func);
 
 void delete_petri_net(void *pn_ptr);
@@ -13,16 +13,16 @@ void delete_petri_net(void *pn_ptr);
 unsigned int add_transition(void *pn_ptr, int pytype, /*0 for imme, 1 for exp*/
                             PyObject *pyguard_func,
                             double pyparam, PyObject *pyparam_func,
-                            unsigned int priority);
+                            unsigned int priority) throw(Exception);
 
 void add_arc(void *pn_ptr, int arc_type, /*0 for in, 1 for out, 2 for inhibitor*/
              unsigned int trans_index, unsigned int place_index,
-             unsigned int pymulti, PyObject *pymulti_func);
+             unsigned int pymulti, PyObject *pymulti_func) throw(Exception);
 
 void set_init_token(void *pn_ptr, unsigned int place_index, unsigned int token_num);
 
 
-bool solve_steady_state(void *pn_ptr);
+bool solve_steady_state(void *pn_ptr) throw(Exception);
 
 
 unsigned int get_token_num(PyObject *wrapped_context, unsigned int place_index);
@@ -41,10 +41,10 @@ void option_set_max_iter(void *pn_ptr, unsigned int iter);
 
 void option_set_precision(void *pn_ptr, double prec);
 
-void set_halt_condition(void *pn_ptr, PyObject *halt_cond_func);
+void set_halt_condition(void *pn_ptr, PyObject *halt_cond_func) throw(Exception);
 
-unsigned int add_inst_reward(void *pn_ptr, PyObject *pyreward_func);
-unsigned int add_cum_reward(void *pn_ptr, PyObject *pyreward_func);
+unsigned int add_inst_reward(void *pn_ptr, PyObject *pyreward_func) throw(Exception);
+unsigned int add_cum_reward(void *pn_ptr, PyObject *pyreward_func) throw(Exception);
 double get_inst_reward(void *pn_ptr, unsigned int reward_index);
 double get_cum_reward(void *pn_ptr, unsigned int reward_index);
 #endif //RELIA_API_H

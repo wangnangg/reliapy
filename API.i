@@ -25,4 +25,10 @@
     }
     $1 = $input;
  }
+
+%typemap(throws) Exception %{
+  PyErr_SetString(PyExc_RuntimeError, $1.what());
+  SWIG_fail;
+%}
+
 %include "API.h"
