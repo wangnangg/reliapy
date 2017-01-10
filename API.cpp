@@ -148,28 +148,15 @@ void set_init_token(void *pn_ptr, unsigned int place_index, unsigned int token_n
     pn->petri_net.set_init_token(place_index, token_num);
 }
 
-unsigned int add_inst_reward(void *pn_ptr, PyObject *pyreward_func)
-{
-    PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
-    PyCallBack<double> wrapped_reward_func((PyObject *) pn->tag, pyreward_func);
-    unsigned int index = pn->add_inst_reward_func(wrapped_reward_func);
-    return index;
-}
-
+//TODO: convergence feedback
 bool solve_steady_state(void *pn_ptr)
 {
     PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
     pn->petri_net.finalize();
-    auto stop_conditoin = pn->solve_steady_state();
-    return stop_conditoin.is_precision_reached();
+    pn->solve_steady_state();
+    return true;
 }
 
-double get_inst_reward(void *pn_ptr, unsigned int reward_index)
-{
-    PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
-    double reward = pn->get_inst_reward(reward_index);
-    return reward;
-}
 
 unsigned int get_token_num(PyObject *wrapped_context, unsigned int place_index)
 {
@@ -220,3 +207,40 @@ void option_set_precision(void *pn_ptr, double prec)
     pn->set_precision(prec);
 }
 
+unsigned int add_inst_reward(void *pn_ptr, PyObject *pyreward_func)
+{
+    PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
+    PyCallBack<double> wrapped_reward_func((PyObject *) pn->tag, pyreward_func);
+    unsigned int index = pn->add_inst_reward_func(wrapped_reward_func);
+    return index;
+}
+unsigned int add_cum_reward(void *pn_ptr, PyObject *pyreward_func)
+{
+    PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
+    PyCallBack<double> wrapped_reward_func((PyObject *) pn->tag, pyreward_func);
+    unsigned int index = pn->add_cum_reward_func(wrapped_reward_func);
+    return index;
+}
+
+double get_inst_reward(void *pn_ptr, unsigned int reward_index)
+{
+    PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
+    double reward = pn->get_inst_reward(reward_index);
+    LOG2("inst reward (" << reward_index <<", " << reward << ")" );
+    return reward;
+}
+
+double get_cum_reward(void *pn_ptr, unsigned int reward_index)
+{
+    PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
+    double reward = pn->get_cum_reward(reward_index);
+    LOG2("cum reward (" << reward_index <<", " << reward << ")" );
+    return reward;
+}
+
+void set_halt_condition(void *pn_ptr, PyObject *halt_cond_func)
+{
+    PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
+    PyCallBack<bool> wrapped_halt_func((PyObject *) pn->tag, halt_cond_func);
+    pn->petri_net.set_halt_condition(wrapped_halt_func);
+}

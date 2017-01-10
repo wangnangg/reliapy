@@ -21,11 +21,9 @@ void add_arc(void *pn_ptr, int arc_type, /*0 for in, 1 for out, 2 for inhibitor*
 
 void set_init_token(void *pn_ptr, unsigned int place_index, unsigned int token_num);
 
-unsigned int add_inst_reward(void *pn_ptr, PyObject *pyreward_func);
 
 bool solve_steady_state(void *pn_ptr);
 
-double get_inst_reward(void *pn_ptr, unsigned int reward_index);
 
 unsigned int get_token_num(PyObject *wrapped_context, unsigned int place_index);
 
@@ -43,4 +41,10 @@ void option_set_max_iter(void *pn_ptr, unsigned int iter);
 
 void option_set_precision(void *pn_ptr, double prec);
 
+void set_halt_condition(void *pn_ptr, PyObject *halt_cond_func);
+
+unsigned int add_inst_reward(void *pn_ptr, PyObject *pyreward_func);
+unsigned int add_cum_reward(void *pn_ptr, PyObject *pyreward_func);
+double get_inst_reward(void *pn_ptr, unsigned int reward_index);
+double get_cum_reward(void *pn_ptr, unsigned int reward_index);
 #endif //RELIA_API_H
