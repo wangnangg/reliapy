@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 import reliapy
-
+import math
 
 class PetriNet:
     ss_method = ["auto", "sor", "power", "divide"]
@@ -162,6 +162,11 @@ class PetriNet:
         decorate_petri_net_agraph(G)
         return G
 
+    def to_marking_chain_agraph(self):
+        G = export_to_marking_chain_agraph(self)
+        decorate_marking_chain_agraph(G)
+        return G
+
 
 class PetriNetState:
     def __init__(self, __context, place_map, trans_map):
@@ -187,40 +192,33 @@ class PetriNetState:
 def export_to_agraph(pn: PetriNet):
     import pygraphviz as pgv
     G = pgv.AGraph(strict=True, directed=True)
-    nodelist = reliapy.NodeVec()
-    edgelist = reliapy.EdgeVec()
-    reliapy.export_petri_net(pn.pn_ptr, nodelist, edgelist)
-    for node in nodelist:
+    png = reliapy.export_petri_net(pn.pn_ptr)
+    for node in png.node_list:
         if node.type == 0:  # place
             name = pn.place_rev_map[node.index]
             type = "place"
-            param = None
         elif node.type == 1:  # imme
             name = pn.trans_rev_map[node.index]
             type = "imme_trans"
-            param = "var" if node.is_param_var else node.param
         else:  # exp
             name = pn.trans_rev_map[node.index]
             type = "exp_trans"
-            param = "var" if node.is_param_var else node.param
-        G.add_node(name, type=type, param=param)
-    for edge in edgelist:
-        multi = "var" if edge.is_multi_var else edge.multi
+        G.add_node(name, type=type, param=node.param)
+    for edge in png.edge_list:
+        multi = edge.param
         if edge.type == 0:  # in
-            pname = pn.place_rev_map[edge.src]
-            tname = pn.trans_rev_map[edge.dest]
+            src = pn.place_rev_map[edge.src]
+            dest = pn.trans_rev_map[edge.dest]
             type = "in"
-            G.add_edge(pname, tname, type=type)
         elif edge.type == 1:  # out
-            pname = pn.place_rev_map[edge.dest]
-            tname = pn.trans_rev_map[edge.src]
+            dest = pn.place_rev_map[edge.dest]
+            src = pn.trans_rev_map[edge.src]
             type = "out"
-            G.add_edge(tname, pname, type=type)
         else:  # inhibitor
-            pname = pn.place_rev_map[edge.src]
-            tname = pn.trans_rev_map[edge.dest]
+            src = pn.place_rev_map[edge.src]
+            dest = pn.trans_rev_map[edge.dest]
             type = "inhibitor"
-            G.add_edge(pname, tname, type=type)
+        G.add_edge(src, dest, type=type, multi=multi)
     return G
 
 
@@ -229,17 +227,13 @@ def decorate_petri_net_agraph(G):  # pgv.AGraph):
     for node in G.nodes():
         if node.attr["type"] == "place":
             shape = "circle"
-            xlabel = None
         elif node.attr["type"] == "imme_trans":
             shape = "diamond"
-            if node.attr["param"] != 1:
-                xlabel = node.attr["param"]
             node.attr["label"] = ""
             node.attr["height"] = 0.02
 
         elif node.attr["type"] == "exp_trans":
             shape = "rect"
-            xlabel = node.attr["param"]
             node.attr["label"] = ""
             node.attr["height"] = 0.1
         else:
@@ -251,4 +245,19 @@ def decorate_petri_net_agraph(G):  # pgv.AGraph):
         else:
             arrowhead = "normal"
         edge.attr["arrowhead"] = arrowhead
+    return G
+
+def export_to_marking_chain_agraph(pn: PetriNet):
+    import pygraphviz as pgv
+    G = pgv.AGraph(strict=True, directed=True)
+    png = reliapy.export_marking_chain(pn.pn_ptr)
+    for node in png.node_list:
+        G.add_node(node.index)
+    for edge in png.edge_list:
+        G.add_edge(edge.src, edge.dest, rate=edge.param)
+    return G
+
+def decorate_marking_chain_agraph(G):
+    #for edge in G.edges():
+    #    edge.attr["label"] = edge.attr["rate"]
     return G

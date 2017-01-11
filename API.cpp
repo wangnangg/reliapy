@@ -274,11 +274,16 @@ void set_halt_condition(void *pn_ptr, PyObject *halt_cond_func)throw(Exception)
     pn->petri_net.set_halt_condition(wrapped_halt_func);
 }
 
-void export_petri_net(void *pn_ptr, std::vector<Node> &node_list, std::vector<Edge> &edge_list)
+Graph export_petri_net(void *pn_ptr)
 {
     PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
-    auto pair = export_petri_net(pn->petri_net);
-    node_list = std::move(pair.first);
-    edge_list = std::move(pair.second);
+    return export_petri_net(pn->petri_net);
 }
 
+Graph export_marking_chain(void *pn_ptr)
+{
+    PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
+    auto chain = pn->gen_marking_chain<BasicChainElement>();
+    auto graph = export_marking_chain(chain.first);
+    return graph;
+}

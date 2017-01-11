@@ -32,6 +32,14 @@ class TestMethods(unittest.TestCase):
             G.layout(prog="dot")
             G.draw("test_fig/" + name + ".png")
 
+    def test_draw_marking_chain(self):
+        for name, pn in self.petri_nets:
+            print("drawing marking chain:", name)
+            G = pn.to_marking_chain_agraph()
+            G.layout(prog="dot")
+            G.draw("test_fig/" + name + "_chain.png")
+
+
 
 if __name__ == '__main__':
     unittest.main()

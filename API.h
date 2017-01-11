@@ -50,6 +50,9 @@ unsigned int add_cum_reward(void *pn_ptr, PyObject *pyreward_func) throw(Excepti
 double get_inst_reward(void *pn_ptr, unsigned int reward_index);
 double get_cum_reward(void *pn_ptr, unsigned int reward_index);
 
-void export_petri_net(void *pn_ptr, std::vector<Node> &node_list, std::vector<Edge> &edge_list);
+Graph export_petri_net(void *pn_ptr);
+
+Graph export_marking_chain(void *pn_ptr);
+
 
 #endif //RELIA_API_H
