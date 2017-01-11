@@ -31,4 +31,11 @@
   SWIG_fail;
 %}
 
+%include "relia/ExportType.h"
+%include "std_vector.i"
+namespace std {
+  %template(NodeVec) vector<Node>;
+  %template(EdgeVec) vector<Edge>;
+}
+
 %include "API.h"

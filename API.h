@@ -6,6 +6,8 @@
 
 #include <Python.h>
 #include "Type.h"
+#include <vector>
+#include "ExportType.h"
 void *create_petri_net(PyObject *wrap_context_func);
 
 void delete_petri_net(void *pn_ptr);
@@ -47,4 +49,7 @@ unsigned int add_inst_reward(void *pn_ptr, PyObject *pyreward_func) throw(Except
 unsigned int add_cum_reward(void *pn_ptr, PyObject *pyreward_func) throw(Exception);
 double get_inst_reward(void *pn_ptr, unsigned int reward_index);
 double get_cum_reward(void *pn_ptr, unsigned int reward_index);
+
+void export_petri_net(void *pn_ptr, std::vector<Node> &node_list, std::vector<Edge> &edge_list);
+
 #endif //RELIA_API_H

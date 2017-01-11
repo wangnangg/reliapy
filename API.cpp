@@ -6,7 +6,7 @@
 #include "PetriNet.h"
 #include <iostream>
 #include "PetriNetSolution.h"
-
+#include "Export.h"
 void *create_petri_net(PyObject *wrap_context_func)
 {
     PetriNetSolution *pn = new PetriNetSolution();
@@ -273,3 +273,12 @@ void set_halt_condition(void *pn_ptr, PyObject *halt_cond_func)throw(Exception)
     PyCallBack<bool> wrapped_halt_func((PyObject *) pn->tag, halt_cond_func);
     pn->petri_net.set_halt_condition(wrapped_halt_func);
 }
+
+void export_petri_net(void *pn_ptr, std::vector<Node> &node_list, std::vector<Edge> &edge_list)
+{
+    PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
+    auto pair = export_petri_net(pn->petri_net);
+    node_list = std::move(pair.first);
+    edge_list = std::move(pair.second);
+}
+

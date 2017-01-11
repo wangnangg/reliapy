@@ -5,3 +5,5 @@ __*
 *.so
 reliapy.py
 *.log
+*.pyc
+test_fig
