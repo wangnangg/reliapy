@@ -30,16 +30,21 @@ class TestMethods(unittest.TestCase):
             print("drawing:", name)
             G = pn.to_agraph()
             G.layout(prog="dot")
-            G.draw("test_fig/" + name + ".png")
+            G.draw("test_fig/" + name + ".svg")
 
     def test_draw_marking_chain(self):
         for name, pn in self.petri_nets:
             print("drawing marking chain:", name)
             G = pn.to_marking_chain_agraph()
             G.layout(prog="dot")
-            G.draw("test_fig/" + name + "_chain.png")
+            G.draw("test_fig/" + name + "_chain.svg")
 
 
+from petri_net_set import test_pn_two_stages
+pn = test_pn_two_stages()
+G = pn.to_agraph()
+G.draw("test.svg")
 
-if __name__ == '__main__':
-    unittest.main()
+
+#if __name__ == '__main__':
+#    unittest.main()

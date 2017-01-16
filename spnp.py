@@ -2,6 +2,7 @@
 import reliapy
 import math
 
+
 class PetriNet:
     ss_method = ["auto", "sor", "power", "divide"]
     ts_method = ["auto"]
@@ -14,7 +15,7 @@ class PetriNet:
         self.trans_rev_map = {}
         self.inst_reward_map = {}
         self.cum_reward_map = {}
-        self.place_count = 0
+        self.trans_info_map = {}
 
     def dispose(self):
         reliapy.delete_petri_net(self.pn_ptr)
@@ -47,6 +48,14 @@ class PetriNet:
         if sor_omega:
             reliapy.option_set_sor_omega(self.pn_ptr, sor_omega)
 
+    def __add_place(self, name):
+        if name in self.place_map or name in self.trans_map:
+            raise KeyError("Duplicate name.")
+        index = len(self.place_map)
+        self.place_map[name] = index
+        self.place_rev_map[index] = name
+        return index
+
     def add_place(self, place):
         if not isinstance(place, list):
             place = [place]
@@ -54,22 +63,16 @@ class PetriNet:
             if isinstance(pair, tuple):
                 name = pair[0]
                 num = pair[1]
-                index = self.place_count
-                if name in self.place_map or name in self.trans_map:
-                    raise KeyError("Duplicate name.")
-                self.place_map[name] = index
-                self.place_rev_map[index] = name
-                self.place_count += 1
+                index = self.__add_place(name)
                 reliapy.set_init_token(self.pn_ptr, index, num)
             else:
-                if pair in self.place_map or pair in self.trans_map:
-                    raise KeyError("Duplicate name.")
-                self.place_map[pair] = self.place_count
-                self.place_rev_map[self.place_count] = pair
-                self.place_count += 1
+                self.__add_place(pair)
 
     def __add_arc(self, arc_type, trans_index, place_name, multi):
-        place_index = self.place_map[place_name]
+        if not (place_name in self.place_map):
+            place_index = self.__add_place(place_name)
+        else:
+            place_index = self.place_map[place_name]
         multi_val = 1
         multi_func = None
         if callable(multi):
@@ -78,7 +81,7 @@ class PetriNet:
             multi_val = multi
         reliapy.add_arc(self.pn_ptr, arc_type, trans_index, place_index, multi_val, multi_func)
 
-    def __add_trans(self, trans_type, name, param, priority, guard, in_arc, out_arc, inh_arc):
+    def __add_trans(self, trans_type, name, param, priority, guard, in_arc, out_arc, inh_arc, tag):
         if name in self.place_map or name in self.trans_map:
             raise KeyError("Duplicate name.")
         param_val = 1.0
@@ -88,6 +91,7 @@ class PetriNet:
         else:
             param_val = param
         trans_index = reliapy.add_transition(self.pn_ptr, trans_type, guard, param_val, param_func, priority)
+        self.trans_info_map[trans_index] = (param, guard, tag)
         self.trans_map[name] = trans_index
         self.trans_rev_map[trans_index] = name
         for arc in in_arc:
@@ -106,14 +110,17 @@ class PetriNet:
             place_name, multi = arc
             self.__add_arc(2, trans_index, place_name, multi)
 
-    def add_imme_trans(self, name, prob=1.0, *, priority=0, guard=None, in_arc=[], out_arc=[], inh_arc=[]):
-        self.__add_trans(0, name, prob, priority, guard, in_arc, out_arc, inh_arc)
+    def add_imme_trans(self, name, prob=1.0, *, priority=0, guard=None, in_arc=[], out_arc=[], inh_arc=[], tag=None):
+        self.__add_trans(0, name, prob, priority, guard, in_arc, out_arc, inh_arc, tag)
 
-    def add_exp_trans(self, name, prob, *, priority=0, guard=None, in_arc=[], out_arc=[], inh_arc=[]):
-        self.__add_trans(1, name, prob, priority, guard, in_arc, out_arc, inh_arc)
+    def add_exp_trans(self, name, prob, *, priority=0, guard=None, in_arc=[], out_arc=[], inh_arc=[], tag=None):
+        self.__add_trans(1, name, prob, priority, guard, in_arc, out_arc, inh_arc, tag)
 
     def set_init_token(self, place_name, token_num):
-        place_index = self.place_map[place_name]
+        if not (place_name in self.place_map):
+            place_index = self.__add_place(place_name)
+        else:
+            place_index = self.place_map[place_name]
         reliapy.set_init_token(self.pn_ptr, place_index, token_num)
 
     def add_inst_reward_func(self, name, reward_func):
@@ -130,10 +137,11 @@ class PetriNet:
 
     def measure_place_nonempty_prob(self, name=None):
         if name:
-            self.add_inst_reward_func(name +" nonempty prob", lambda x: 1 if x.token(name) > 0 else 0)
+            self.add_inst_reward_func(name + " nonempty prob", lambda x: 1 if x.token(name) > 0 else 0)
         else:
             for key in self.place_map:
                 self.add_inst_reward_func(key + " nonempty prob", lambda x, key=key: 1 if x.token(key) > 0 else 0)
+
     def measure_MTTA(self):
         self.add_cum_reward_func("MTTA", lambda x: 0 if x.is_absorbing() else 1)
 
@@ -157,9 +165,56 @@ class PetriNet:
         if not result:
             raise Exception("precision not reached.")
 
+    def __to_agraph(self):
+        import pygraphviz as pgv
+        import inspect
+        G = pgv.AGraph(strict=True, directed=True)
+        png = reliapy.export_petri_net(self.pn_ptr)
+        for node in png.node_list:
+            if node.type == 0:  # place
+                name = self.place_rev_map[node.index]
+                type = "place"
+                G.add_node(name, type=type)
+            else:  # trans
+                if node.type == 1:  # imme
+                    type = "imme_trans"
+                else:
+                    type = "exp_trans"
+                name = self.trans_rev_map[node.index]
+                param, guard, tag = self.trans_info_map[node.index]
+                if callable(param):
+                    param = inspect.getsource(param)
+                else:
+                    param = str(param)
+                G.add_node(name, type=type,
+                           param=param)
+                if callable(guard):
+                    guard = inspect.getsource(guard)
+                    G.get_node(name).attr["guard"] = guard
+                if tag:
+                    G.get_node(name).attr["tag"] = tag
+
+        for edge in png.edge_list:
+            multi = edge.param
+            if edge.type == 0:  # in
+                src = self.place_rev_map[edge.src]
+                dest = self.trans_rev_map[edge.dest]
+                type = "in"
+            elif edge.type == 1:  # out
+                dest = self.place_rev_map[edge.dest]
+                src = self.trans_rev_map[edge.src]
+                type = "out"
+            else:  # inhibitor
+                src = self.place_rev_map[edge.src]
+                dest = self.trans_rev_map[edge.dest]
+                type = "inhibitor"
+            G.add_edge(src, dest, type=type, multi=multi)
+        return G
+
     def to_agraph(self):
-        G = export_to_agraph(self)
+        G = self.__to_agraph()
         decorate_petri_net_agraph(G)
+        G.layout(prog="dot")
         return G
 
     def to_marking_chain_agraph(self):
@@ -189,53 +244,50 @@ class PetriNetState:
         return not reliapy.has_enbaled_trans(self.__context)
 
 
-def export_to_agraph(pn: PetriNet):
-    import pygraphviz as pgv
-    G = pgv.AGraph(strict=True, directed=True)
-    png = reliapy.export_petri_net(pn.pn_ptr)
-    for node in png.node_list:
-        if node.type == 0:  # place
-            name = pn.place_rev_map[node.index]
-            type = "place"
-        elif node.type == 1:  # imme
-            name = pn.trans_rev_map[node.index]
-            type = "imme_trans"
-        else:  # exp
-            name = pn.trans_rev_map[node.index]
-            type = "exp_trans"
-        G.add_node(name, type=type, param=node.param)
-    for edge in png.edge_list:
-        multi = edge.param
-        if edge.type == 0:  # in
-            src = pn.place_rev_map[edge.src]
-            dest = pn.trans_rev_map[edge.dest]
-            type = "in"
-        elif edge.type == 1:  # out
-            dest = pn.place_rev_map[edge.dest]
-            src = pn.trans_rev_map[edge.src]
-            type = "out"
-        else:  # inhibitor
-            src = pn.place_rev_map[edge.src]
-            dest = pn.trans_rev_map[edge.dest]
-            type = "inhibitor"
-        G.add_edge(src, dest, type=type, multi=multi)
-    return G
+def indent_code(code, indent):
+    lines = code.split('\n')
+    indented = []
+    for line in lines:
+        if line:
+            indented.extend([indent, line, '\n'])
+    return ''.join(indented)
+
+
+def build_trans_tooltip(node):
+    tooltip = []
+    indent = '     '
+    param = indent_code(node.attr["param"], indent)
+    tooltip.extend([str(node), "\nparam:\n", param])
+    if node.attr["guard"]:
+        guard = indent_code(node.attr["guard"], indent)
+        tooltip.extend(["guard:\n", guard])
+    if node.attr["tag"]:
+        tooltip.extend(["tag:", node.attr["tag"]])
+    tooltip = ''.join(tooltip)
+    tooltip = tooltip.replace("\n", "&#10;")
+    return tooltip
 
 
 # import pygraphviz as pgv
 def decorate_petri_net_agraph(G):  # pgv.AGraph):
+    G.graph_attr["tooltip"] = " "
     for node in G.nodes():
         if node.attr["type"] == "place":
             shape = "circle"
+            node.attr["style"] = "filled"
         elif node.attr["type"] == "imme_trans":
-            shape = "diamond"
+            shape = "rect"
             node.attr["label"] = ""
-            node.attr["height"] = 0.02
-
+            node.attr["height"] = 0.05
+            node.attr["style"] = "filled"
+            node.attr["fillcolor"] = "black"
+            node.attr["tooltip"] = build_trans_tooltip(node)
         elif node.attr["type"] == "exp_trans":
             shape = "rect"
             node.attr["label"] = ""
             node.attr["height"] = 0.1
+            node.attr["style"] = "filled"
+            node.attr["tooltip"] = build_trans_tooltip(node)
         else:
             raise AttributeError("Unkonwn node type.")
         node.attr["shape"] = shape
@@ -247,6 +299,7 @@ def decorate_petri_net_agraph(G):  # pgv.AGraph):
         edge.attr["arrowhead"] = arrowhead
     return G
 
+
 def export_to_marking_chain_agraph(pn: PetriNet):
     import pygraphviz as pgv
     G = pgv.AGraph(strict=True, directed=True)
@@ -257,7 +310,12 @@ def export_to_marking_chain_agraph(pn: PetriNet):
         G.add_edge(edge.src, edge.dest, rate=edge.param)
     return G
 
+
 def decorate_marking_chain_agraph(G):
-    #for edge in G.edges():
+    # for edge in G.edges():
     #    edge.attr["label"] = edge.attr["rate"]
     return G
+
+
+def compute_acyclic_mtta(pn: PetriNet):
+    return reliapy.get_acyclic_petri_net_mtta(pn.pn_ptr)

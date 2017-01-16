@@ -1,0 +1,16 @@
+.PHONY: all
+all: _reliapy.so reliapy.py
+cmake-build-release/libreliapy.so: API_wrap.cxx FORCE
+	cmake --build cmake-build-release --target reliapy -- -j 4
+_reliapy.so: cmake-build-release/libreliapy.so
+	cp cmake-build-release/libreliapy.so _reliapy.so
+reliapy.py: API.i API.h
+	swig -python -c++ API.i
+API_wrap.cxx: API.i API.h
+	swig -python -c++ API.i
+
+init: API_wrap.cxx
+	mkdir -p cmake-build-release
+	cd cmake-build-release && cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" ../
+
+FORCE: ;

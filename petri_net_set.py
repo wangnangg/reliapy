@@ -11,7 +11,7 @@ def two_timesf(name, f):
     return func
 
 
-def __pn_blockchain():
+def test_pn_blockchain():
     pn = PetriNet()
     pn.set_option(max_iteration=100, precision=1e-10)
     pn.add_place([("Start", 1), "PP",
@@ -65,25 +65,27 @@ def mtta_func(x):
     else:
         return 1
 
+def get_two(x):
+    return 2.0
 
-def __pn_two_stages():
+def get_one(x):
+    return 1.0
+
+def test_pn_two_stages():
     pn = PetriNet()
     pn.set_option(max_iteration=10, precision=1e-20)
-    pn.add_place("p1")
-    pn.add_place("p2")
-    pn.add_place("p3")
-    pn.add_exp_trans("t1", 0.1, in_arc=["p1"], out_arc=["p2"])
-    pn.add_exp_trans("t2", 0.2, in_arc=["p2"], out_arc=["p3"])
+    pn.add_exp_trans("t1", get_one, in_arc=["p1"], out_arc=["p2"])
+    pn.add_exp_trans("t2", lambda x : 1, in_arc=["p2"], out_arc=["p3"])
     pn.set_init_token("p1", 1)
     pn.add_cum_reward_func("mtta", mtta_func)
     return pn
 
 
-def __pn_slip_away():
+def test_pn_slip_away():
     pn = PetriNet()
     pn.set_option(max_iteration=10000, precision=1e-10)
     pn.add_place([("p1", 1), "p2", "p3"])
-    pn.add_exp_trans("t1", 2,
+    pn.add_exp_trans("t1", get_two,
                      in_arc=["p1"],
                      out_arc=["p2"])
     pn.add_exp_trans("t2", 1,
@@ -97,7 +99,7 @@ def __pn_slip_away():
     return pn
 
 
-def __pn_birth_death():
+def test_pn_birth_death():
     pn = PetriNet()
     pn.set_option(max_iteration=1000, precision=1e-10)
     pn.add_place([("p1", 20), "p2"])
@@ -111,7 +113,7 @@ def __pn_birth_death():
     return pn
 
 
-def __pn_two_class1():
+def test_pn_two_class1():
     pn = PetriNet()
     pn.add_place(["a1", "a2", ("o1", 1), "o2"])
     pn.add_exp_trans("ta1", 0.1, in_arc=["a1"], out_arc=["a2"])
@@ -123,7 +125,7 @@ def __pn_two_class1():
     return pn
 
 
-def __pn_two_class2():
+def test_pn_two_class2():
     pn = PetriNet()
     pn.add_place([("a", 1), "b", "c"])
     pn.add_exp_trans("tab", 0.1, in_arc=["a"], out_arc=["b"])
@@ -133,7 +135,7 @@ def __pn_two_class2():
     pn.measure_MTTA()
     return pn
 
-def __pn_three_class1():
+def test_pn_three_class1():
     pn = PetriNet()
     pn.add_place([("a", 1), "b",
                   "c", "d",
@@ -152,8 +154,8 @@ def __pn_three_class1():
     pn.measure_MTTA()
     return pn
 
-def __pn_three_class2():
-    pn = __pn_three_class1()
+def test_pn_three_class2():
+    pn = test_pn_three_class1()
     pn.set_init_token("a", 0)
     pn.set_init_token("b", 1)
     return pn
@@ -161,5 +163,5 @@ def __pn_three_class2():
 pn_creator_func = []
 name_dict = dict(globals())
 for func_name, func in name_dict.items():
-    if func_name.startswith("__pn_"):
+    if func_name.startswith("test_pn_"):
         pn_creator_func.append((func_name[5:], func))

@@ -1,5 +1,5 @@
 .idea
-cmake-build-debug
+cmake-build-*
 *.cxx
 __*
 *.so
@@ -7,3 +7,4 @@ reliapy.py
 *.log
 *.pyc
 test_fig
+*.svg

@@ -49,7 +49,7 @@ unsigned int add_inst_reward(void *pn_ptr, PyObject *pyreward_func) throw(Except
 unsigned int add_cum_reward(void *pn_ptr, PyObject *pyreward_func) throw(Exception);
 double get_inst_reward(void *pn_ptr, unsigned int reward_index);
 double get_cum_reward(void *pn_ptr, unsigned int reward_index);
-
+double get_acyclic_petri_net_mtta(void *pn_ptr);
 Graph export_petri_net(void *pn_ptr);
 
 Graph export_marking_chain(void *pn_ptr);

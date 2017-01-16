@@ -274,6 +274,12 @@ void set_halt_condition(void *pn_ptr, PyObject *halt_cond_func)throw(Exception)
     pn->petri_net.set_halt_condition(wrapped_halt_func);
 }
 
+double get_acyclic_petri_net_mtta(void *pn_ptr)
+{
+    PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
+    return pn->acyclic_mtta();
+}
+
 Graph export_petri_net(void *pn_ptr)
 {
     PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
