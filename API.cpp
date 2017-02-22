@@ -255,7 +255,6 @@ double get_inst_reward(void *pn_ptr, unsigned int reward_index)
 {
     PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
     double reward = pn->get_inst_reward(reward_index);
-    LOG2("inst reward (" << reward_index <<", " << reward << ")" );
     return reward;
 }
 
@@ -263,7 +262,6 @@ double get_cum_reward(void *pn_ptr, unsigned int reward_index)
 {
     PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
     double reward = pn->get_cum_reward(reward_index);
-    LOG2("cum reward (" << reward_index <<", " << reward << ")" );
     return reward;
 }
 
@@ -286,4 +284,10 @@ Graph export_marking_chain(void *pn_ptr)
     auto chain = pn->gen_marking_chain<BasicChainElement>();
     auto graph = export_marking_chain(chain.first);
     return graph;
+}
+
+void config_logger(void *pn_ptr, const char *file)
+{
+    PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
+    pn->config_logger(file);
 }

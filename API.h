@@ -43,6 +43,8 @@ void option_set_max_iter(void *pn_ptr, unsigned int iter);
 
 void option_set_precision(void *pn_ptr, double prec);
 
+void config_logger(void *pn_ptr, const char *file);
+
 void set_halt_condition(void *pn_ptr, PyObject *halt_cond_func) throw(Exception);
 
 unsigned int add_inst_reward(void *pn_ptr, PyObject *pyreward_func) throw(Exception);
