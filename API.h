@@ -7,7 +7,7 @@
 #include <Python.h>
 #include "Type.h"
 #include <vector>
-#include "ExportType.h"
+#include <string>
 void *create_petri_net(PyObject *wrap_context_func);
 
 void delete_petri_net(void *pn_ptr);
@@ -52,9 +52,13 @@ unsigned int add_cum_reward(void *pn_ptr, PyObject *pyreward_func) throw(Excepti
 double get_inst_reward(void *pn_ptr, unsigned int reward_index);
 double get_cum_reward(void *pn_ptr, unsigned int reward_index);
 
-Graph export_petri_net(void *pn_ptr);
 
-Graph export_marking_chain(void *pn_ptr);
+std::string fire_transition(void *pn_ptr, unsigned int trans_index, const std::string& marking);
+bool is_trans_enabled_in_marking(void *pn_ptr, unsigned int trans_index, const std::string& marking);
+std::string export_petri_net(void *pn_ptr);
+std::string export_init_marking(void *pn_ptr);
+
+double get_acyclic_mtta(void *pn_ptr);
 
 
 #endif //RELIA_API_H

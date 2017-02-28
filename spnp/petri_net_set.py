@@ -1,4 +1,4 @@
-from spnp import *
+from model import *
 
 
 def two_timesf(name, f):
@@ -161,8 +161,14 @@ def test_pn_three_class2():
     return pn
 
 
-def test_pn_CPS():
+
+def test_pn_tmr():
     pn = PetriNet();
+    pn.add_place([("Pspare", 2), ("Pworking", 3)])
+    pn.add_exp_trans("Tr", 1.0, in_arc=["Pspare"], out_arc=["Pworking"], inh_arc=[("Pworking", 3)])
+    pn.add_exp_trans("Tf", 1.0, in_arc=["Pworking"])
+    pn.set_halt_condition(lambda x: x.token("Pworking") < 2)
+    return pn
 
 
 pn_creator_func = []

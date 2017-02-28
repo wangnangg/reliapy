@@ -1,14 +1,14 @@
 config:=debug
 .PHONY: all
-all: _reliapy.so reliapy.py
+all: spnp/_reliapy.so spnp/reliapy.py
 cmake-build-${config}/libreliapy.so: API_wrap.cxx FORCE
 	cmake --build cmake-build-${config} --target reliapy -- -j 4
-_reliapy.so: cmake-build-${config}/libreliapy.so
-	cp cmake-build-${config}/libreliapy.so _reliapy.so
-reliapy.py: API.i API.h
-	swig -python -c++ API.i
+spnp/_reliapy.so: cmake-build-${config}/libreliapy.so
+	cp cmake-build-${config}/libreliapy.so ./spnp/_reliapy.so
+spnp/reliapy.py: API.i API.h
+	swig -python -c++ -outdir spnp API.i
 API_wrap.cxx: API.i API.h
-	swig -python -c++ API.i
+	swig -python -c++ -outdir spnp API.i
 
 init: API_wrap.cxx
 	mkdir -p cmake-build-${config}

@@ -8,3 +8,4 @@ reliapy.py
 *.pyc
 test_fig
 *.svg
+.ipynb_checkpoints

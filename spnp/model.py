@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 import reliapy
 import math
-
+import matplotlib
+import json
 
 class PetriNet:
     ss_method = ["auto", "sor", "power", "divide"]
@@ -110,11 +111,11 @@ class PetriNet:
             place_name, multi = arc
             self.__add_arc(2, trans_index, place_name, multi)
 
-    def add_imme_trans(self, name, prob=1.0, *, priority=0, guard=None, in_arc=[], out_arc=[], inh_arc=[], tag=None):
-        self.__add_trans(0, name, prob, priority, guard, in_arc, out_arc, inh_arc, tag)
+    def add_imme_trans(self, name, weight=1.0, *, priority=0, guard=None, in_arc=[], out_arc=[], inh_arc=[], tag=None):
+        self.__add_trans(0, name, weight, priority, guard, in_arc, out_arc, inh_arc, tag)
 
-    def add_exp_trans(self, name, prob, *, priority=0, guard=None, in_arc=[], out_arc=[], inh_arc=[], tag=None):
-        self.__add_trans(1, name, prob, priority, guard, in_arc, out_arc, inh_arc, tag)
+    def add_exp_trans(self, name, rate, *, priority=0, guard=None, in_arc=[], out_arc=[], inh_arc=[], tag=None):
+        self.__add_trans(1, name, rate, priority, guard, in_arc, out_arc, inh_arc, tag)
 
     def set_init_token(self, place_name, token_num):
         if not (place_name in self.place_map):
@@ -164,6 +165,29 @@ class PetriNet:
         result = reliapy.solve_steady_state(self.pn_ptr)
         if not result:
             raise Exception("precision not reached.")
+
+    def get_init_marking(self):
+        mk_str = reliapy.export_init_marking(self.pn_ptr)
+        return json_str2marking(self, mk_str)
+
+    def fire(self, trans_name, marking=None):
+        if marking is None:
+            marking = self.get_init_marking()
+        if not self.is_trans_enabled(trans_name, marking):
+            return marking
+        else:
+            trans_index = self.trans_map[trans_name]
+            mk_str = marking2json_str(self, marking)
+            next_mkstring = reliapy.fire_transition(self.pn_ptr, trans_index, mk_str)
+            next_mk = json_str2marking(self, next_mkstring)
+            return next_mk
+
+    def is_trans_enabled(self, trans_name, marking=None):
+        if marking is None:
+            marking = self.get_init_marking()
+        trans_index = self.trans_map[trans_name]
+        mk_str = marking2json_str(self, marking)
+        return reliapy.is_trans_enabled_in_marking(self.pn_ptr, trans_index, mk_str)
 
     def __to_agraph(self):
         import pygraphviz as pgv
@@ -247,6 +271,22 @@ class PetriNetState:
         return not reliapy.has_enbaled_trans(self.__context)
 
 
+def marking2json_str(pn, mk):
+    json_mk = []
+    for i in range(0, len(pn.place_map)):
+        pname = pn.place_rev_map[i]
+        json_mk.append(mk[pname])
+    return json.dumps(json_mk)
+
+def json_str2marking(pn, json_str):
+    j = json.loads(json_str)
+    mk = {}
+    for pname, pindex in pn.place_map.items():
+        mk[pname] = j[pindex]
+    return mk
+
+
+
 def indent_code(code, indent):
     lines = code.split('\n')
     indented = []
@@ -321,4 +361,6 @@ def decorate_marking_chain_agraph(G):
 
 
 def compute_acyclic_mtta(pn: PetriNet):
-    return reliapy.get_acyclic_petri_net_mtta(pn.pn_ptr)
+    return reliapy.get_acyclic_mtta(pn.pn_ptr)
+
+

@@ -272,22 +272,42 @@ void set_halt_condition(void *pn_ptr, PyObject *halt_cond_func)throw(Exception)
     pn->petri_net.set_halt_condition(wrapped_halt_func);
 }
 
-Graph export_petri_net(void *pn_ptr)
-{
-    PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
-    return export_petri_net(pn->petri_net);
-}
-
-Graph export_marking_chain(void *pn_ptr)
-{
-    PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
-    auto chain = pn->gen_marking_chain<BasicChainElement>();
-    auto graph = export_marking_chain(chain.first);
-    return graph;
-}
-
 void config_logger(void *pn_ptr, const char *file)
 {
     PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
     pn->config_logger(file);
+}
+double get_acyclic_mtta(void *pn_ptr)
+{
+    PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
+    return pn->get_acyclic_mtta();
+}
+
+std::string export_petri_net(void *pn_ptr)
+{
+    PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
+    return export_petri_net2json(pn->petri_net).dump();
+}
+
+std::string export_init_marking(void *pn_ptr)
+{
+    PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
+    return export_marking2json(pn->petri_net.init_marking).dump();
+}
+
+std::string fire_transition(void *pn_ptr, uint_t trans_index, const std::string& marking)
+{
+    PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
+    auto j = json::parse(marking);
+    Marking m = import_marking_from_json(j);
+    Marking next_m = pn->petri_net.fire_transition(trans_index, m);
+    return export_marking2json(next_m).dump();
+}
+
+bool is_trans_enabled_in_marking(void *pn_ptr, unsigned int trans_index, const std::string &marking)
+{
+    PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
+    auto j = json::parse(marking);
+    Marking m = import_marking_from_json(j);
+    return pn->petri_net.is_transition_enabled(trans_index, m);
 }
