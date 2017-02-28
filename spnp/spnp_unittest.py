@@ -29,8 +29,14 @@ class TestMethods(unittest.TestCase):
             for name, val in pn.get_rewards():
                 print(name, ":", val)
 
+
     def test_draw(self):
-        pn = pn_set.test_pn_blockchain()
+        pn = pn_set.test_pn_three_class2()
+        pn.config_logger('/home/wangnan/workspace/reliapy/spnp/test_logger.conf')
+        import numpy as np
+        t = np.arange(0, 15, 1.0)
+        for i in t:
+            pn.solve(i)
         display.show_petri_net(pn)
 
     def test_draw_marking_chain(self):

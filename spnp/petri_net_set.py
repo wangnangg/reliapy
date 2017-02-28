@@ -170,6 +170,19 @@ def test_pn_tmr():
     pn.set_halt_condition(lambda x: x.token("Pworking") < 2)
     return pn
 
+def test_pn_mm1n():
+    pn = PetriNet()
+    cap = 10
+    arr_rate = 1.0
+    ser_rate = 1.0
+    pn.add_exp_trans("T_arr", arr_rate, out_arc=["P_sys"], inh_arc=[("P_sys", cap)])
+    pn.add_exp_trans("T_ser", ser_rate, in_arc=["P_sys"], inh_arc=["P_down"])
+    pn.add_exp_trans("T_fail", 0.01, in_arc=["P_up"], out_arc=["P_down"])
+    pn.add_exp_trans("T_repair", 0.1, in_arc=["P_down"], out_arc=["P_up"])
+    pn.set_init_token("P_up", 1)
+    pn.add_inst_reward_func("P_block", lambda x : 1 if x.token("P_sys") == 10 else 0)
+    return pn
+
 
 pn_creator_func = []
 name_dict = dict(globals())

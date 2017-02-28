@@ -9,3 +9,4 @@ reliapy.py
 test_fig
 *.svg
 .ipynb_checkpoints
+*.ipynb

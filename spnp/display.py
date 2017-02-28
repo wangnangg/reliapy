@@ -24,6 +24,7 @@ g_enabled_alpha = 0.5
 g_enabled_imme_scale = 1.5
 
 def show_petri_net(petri_net, marking=None, *, with_marking=True, interactive=True):
+    plt.close()
     if with_marking:
         if marking:
             m = marking

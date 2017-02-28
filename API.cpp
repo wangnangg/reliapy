@@ -177,12 +177,11 @@ void set_init_token(void *pn_ptr, unsigned int place_index, unsigned int token_n
 }
 
 //TODO: convergence feedback
-bool solve_steady_state(void *pn_ptr)throw(Exception)
+void solve_steady_state(void *pn_ptr)throw(Exception)
 {
     PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
     pn->petri_net.finalize();
     pn->solve_steady_state();
-    return true;
 }
 
 
@@ -265,10 +264,11 @@ double get_cum_reward(void *pn_ptr, unsigned int reward_index)
     return reward;
 }
 
-void set_halt_condition(void *pn_ptr, PyObject *halt_cond_func)throw(Exception)
+void set_halt_condition(void *pn_ptr, PyObject *halt_cond_func) throw(Exception)
 {
     PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
     PyCallBack<bool> wrapped_halt_func((PyObject *) pn->tag, halt_cond_func);
+    pn->check_callback_function(std::function<bool(PetriNetContext*)>(wrapped_halt_func));
     pn->petri_net.set_halt_condition(wrapped_halt_func);
 }
 
@@ -310,4 +310,10 @@ bool is_trans_enabled_in_marking(void *pn_ptr, unsigned int trans_index, const s
     auto j = json::parse(marking);
     Marking m = import_marking_from_json(j);
     return pn->petri_net.is_transition_enabled(trans_index, m);
+}
+
+void solve_transient_state(void *pn_ptr, double time) throw(Exception)
+{
+    PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
+    pn->solve_transient_state(time);
 }

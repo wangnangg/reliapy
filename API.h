@@ -24,7 +24,9 @@ void add_arc(void *pn_ptr, int arc_type, /*0 for in, 1 for out, 2 for inhibitor*
 void set_init_token(void *pn_ptr, unsigned int place_index, unsigned int token_num);
 
 
-bool solve_steady_state(void *pn_ptr) throw(Exception);
+void solve_steady_state(void *pn_ptr) throw(Exception);
+
+void solve_transient_state(void *pn_ptr, double time) throw(Exception);
 
 
 unsigned int get_token_num(PyObject *wrapped_context, unsigned int place_index);

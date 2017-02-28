@@ -161,10 +161,11 @@ class PetriNet:
     def set_halt_condition(self, halt_func):
         reliapy.set_halt_condition(self.pn_ptr, halt_func)
 
-    def solve(self):
-        result = reliapy.solve_steady_state(self.pn_ptr)
-        if not result:
-            raise Exception("precision not reached.")
+    def solve(self, time=None):
+        if not time is None:
+            reliapy.solve_transient_state(self.pn_ptr, float(time))
+        else:
+            reliapy.solve_steady_state(self.pn_ptr)
 
     def get_init_marking(self):
         mk_str = reliapy.export_init_marking(self.pn_ptr)
@@ -282,7 +283,10 @@ def json_str2marking(pn, json_str):
     j = json.loads(json_str)
     mk = {}
     for pname, pindex in pn.place_map.items():
-        mk[pname] = j[pindex]
+        if pindex >= len(j):
+            mk[pname] = 0
+        else:
+            mk[pname] = j[pindex]
     return mk
 
 
