@@ -29,6 +29,16 @@ def petri_net_to_agraph(pn : PetriNet):
             g.add_edge(pname, name, type="inh_arc", multi=arc["multi"])
     return g
 
+def petri_net_to_reachability_agraph(pn: PetriNet):
+    G = pyg.AGraph(strict=True, directed=True)
+    png = reliapy.export_marking_chain(pn.pn_ptr)
+    for node in png.node_list:
+        G.add_node(node.index)
+    for edge in png.edge_list:
+        G.add_edge(edge.src, edge.dest, rate=edge.param)
+    return G
+
+
 def petri_net_to_nxgraph(pn : PetriNet):
     j = json.loads(reliapy.export_petri_net(pn.pn_ptr))
     g = nx.DiGraph()

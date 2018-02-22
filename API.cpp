@@ -7,6 +7,7 @@
 #include <iostream>
 #include "PetriNetSolution.h"
 #include "Export.h"
+
 void *create_petri_net(PyObject *wrap_context_func)
 {
     PetriNetSolution *pn = new PetriNetSolution();
@@ -33,7 +34,7 @@ double ConvertBasicTypeFromPy(PyObject *obj)
     if (PyLong_CheckExact(obj))
     {
         return PyLong_AsDouble(obj);
-    }else if (PyFloat_CheckExact(obj))
+    } else if (PyFloat_CheckExact(obj))
     {
         return PyFloat_AsDouble(obj);
     }
@@ -41,9 +42,23 @@ double ConvertBasicTypeFromPy(PyObject *obj)
 }
 
 template<>
+Marking ConvertBasicTypeFromPy(PyObject *obj)
+{
+    if (PyUnicode_CheckExact(obj))
+    {
+        auto str_bytes = PyUnicode_AsASCIIString(obj);
+        const char* str = PyBytes_AS_STRING(str_bytes);
+        auto j = json::parse(str);
+        return import_marking_from_json(j);
+    }
+
+    throw Exception("Error. Expecting a string from callback function.");
+}
+
+template<>
 bool ConvertBasicTypeFromPy(PyObject *obj)
 {
-    if(PyBool_Check(obj))
+    if (PyBool_Check(obj))
     {
         return PyObject_IsTrue(obj);
     }
@@ -53,7 +68,7 @@ bool ConvertBasicTypeFromPy(PyObject *obj)
 template<>
 unsigned int ConvertBasicTypeFromPy(PyObject *obj)
 {
-    if(PyLong_CheckExact(obj))
+    if (PyLong_CheckExact(obj))
     {
         return PyLong_AsUnsignedLong(obj);
     }
@@ -87,9 +102,9 @@ public:
 
     PyCallBack(PyObject *wrap_context, PyObject *callback) : callback_func(callback), wrap_context_func(wrap_context)
     {
-        if(!PyCallable_Check(callback))
+        if (!PyCallable_Check(callback))
         {
-           throw Exception("Callback function is not callable.");
+            throw Exception("Callback function is not callable.");
         }
         Py_INCREF(callback_func);
         Py_INCREF(wrap_context_func);
@@ -101,10 +116,11 @@ public:
         Py_XDECREF(wrap_context_func);
     }
 
-    PyCallBack& operator=(const PyObject &other) = delete;
-    PyCallBack& operator=(PyObject &&other) = delete;
+    PyCallBack &operator=(const PyObject &other) = delete;
 
-    RetType operator()(PetriNetContext *context)
+    PyCallBack &operator=(PyObject &&other) = delete;
+
+    RetType operator()(void *context)
     {
         PyObject *capsule = PyCapsule_New(context, NULL, NULL);
         PyObject *wrap_func_arg = Py_BuildValue("(O)", capsule);
@@ -115,7 +131,7 @@ public:
         Py_DECREF(callback_func_arg);
         Py_DECREF(wrapped_state);
         Py_DECREF(capsule);
-        if(callback_result == NULL)
+        if (callback_result == NULL)
         {//exception happened
             throw Exception("Exception happened in callback function.");
         }
@@ -123,6 +139,7 @@ public:
         return result;
     }
 };
+
 
 unsigned int add_transition(void *pn_ptr, int pytype, /*0 for imme, 1 for exp*/
                             PyObject *pyguard_func,
@@ -185,7 +202,6 @@ void solve_steady_state(void *pn_ptr)throw(Exception)
 }
 
 
-
 unsigned int get_token_num(PyObject *wrapped_context, unsigned int place_index)
 {
     PetriNetContext *context = (PetriNetContext *) PyCapsule_GetPointer(wrapped_context, NULL);
@@ -207,13 +223,13 @@ bool has_enbaled_trans(PyObject *wrapped_context)
 void option_set_ss_method(void *pn_ptr, int method)
 {
     PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
-    pn->set_ss_method((Option::SSMethod)method);
+    pn->set_ss_method((Option::SSMethod) method);
 }
 
 void option_set_ts_method(void *pn_ptr, int method)
 {
     PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
-    pn->set_ts_method((Option::TSMethod)method);
+    pn->set_ts_method((Option::TSMethod) method);
 }
 
 void option_set_sor_omega(void *pn_ptr, double omega)
@@ -242,6 +258,7 @@ unsigned int add_inst_reward(void *pn_ptr, PyObject *pyreward_func) throw(Except
     unsigned int index = pn->add_inst_reward_func(wrapped_reward_func);
     return index;
 }
+
 unsigned int add_cum_reward(void *pn_ptr, PyObject *pyreward_func)throw(Exception)
 {
     PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
@@ -268,7 +285,7 @@ void set_halt_condition(void *pn_ptr, PyObject *halt_cond_func) throw(Exception)
 {
     PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
     PyCallBack<bool> wrapped_halt_func((PyObject *) pn->tag, halt_cond_func);
-    pn->check_callback_function(std::function<bool(PetriNetContext*)>(wrapped_halt_func));
+    pn->check_callback_function(std::function<bool(PetriNetContext *)>(wrapped_halt_func));
     pn->petri_net.set_halt_condition(wrapped_halt_func);
 }
 
@@ -277,6 +294,7 @@ void config_logger(void *pn_ptr, const char *file)
     PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
     pn->config_logger(file);
 }
+
 double get_acyclic_mtta(void *pn_ptr)
 {
     PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
@@ -295,7 +313,7 @@ std::string export_init_marking(void *pn_ptr)
     return export_marking2json(pn->petri_net.init_marking).dump();
 }
 
-std::string fire_transition(void *pn_ptr, uint_t trans_index, const std::string& marking)
+std::string fire_transition(void *pn_ptr, uint_t trans_index, const std::string &marking)
 {
     PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
     auto j = json::parse(marking);
@@ -316,4 +334,18 @@ void solve_transient_state(void *pn_ptr, double time) throw(Exception)
 {
     PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
     pn->solve_transient_state(time);
+}
+
+void bind_modifier(void *pn_ptr, PyObject *modifier_func) throw(Exception)
+{
+    PetriNetSolution *pn = (PetriNetSolution *) pn_ptr;
+    PyCallBack<Marking> wrapped_halt_func((PyObject *) pn->tag, modifier_func);
+    //pn->check_callback_function(std::function<Marking (PetriNetContext*)>(wrapped_halt_func));
+    pn->bind_marking_modifier(wrapped_halt_func);
+}
+
+std::string export_current_marking(PyObject *wrapped_context)
+{
+    PetriNetContext *context = (PetriNetContext *) PyCapsule_GetPointer(wrapped_context, NULL);
+    return export_marking2json(*(context->marking)).dump();
 }

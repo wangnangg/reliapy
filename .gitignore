@@ -10,3 +10,5 @@ test_fig
 *.svg
 .ipynb_checkpoints
 *.ipynb
+spnp/trash
+spnp/venv

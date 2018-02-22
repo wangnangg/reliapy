@@ -9,7 +9,6 @@ import numpy as np
 
 g_ax = None
 g_cf = None
-g_fontsize = 12
 g_place_r = 20.0
 g_imme_w = 40.0
 g_imme_h = 2.0
@@ -22,8 +21,11 @@ g_arrow_opt = {'head_width': g_arrow_head_size,
 g_enabled_color = 'r'
 g_enabled_alpha = 0.5
 g_enabled_imme_scale = 1.5
+g_linewith = 1.0
+g_fontsize = 12
+g_default_color = 'black'
 
-def show_petri_net(petri_net, marking=None, *, with_marking=True, interactive=True):
+def show_petri_net(petri_net, marking=None, *, with_marking=True, interactive=True, with_label=True):
     plt.close()
     if with_marking:
         if marking:
@@ -32,14 +34,13 @@ def show_petri_net(petri_net, marking=None, *, with_marking=True, interactive=Tr
             m = petri_net.get_init_marking()
     else:
         m = None
-    draw_petri_net(petri_net, m, interactive=interactive)
+    draw_petri_net(petri_net, m, interactive=interactive, with_label=with_label)
     plt.show()
 
-
-def draw_petri_net(petri_net, marking=None, *, interactive=True, layout_prog='dot', ax=None):
-    global g_ax
+def draw_petri_net(petri_net, marking=None, *, interactive=True, with_label=True, layout_prog='dot', ax=None):
+    global g_ax, g_cf
     G = export.petri_net_to_nxgraph(petri_net)
-    pygraphviz_layout(G)
+    pygraphviz_layout(G, with_label)
     if ax is None:
         cf = plt.gcf()
     else:
@@ -54,7 +55,7 @@ def draw_petri_net(petri_net, marking=None, *, interactive=True, layout_prog='do
     g_cf = cf
     g_ax.axis('off')
     g_ax.spnp_data = {'ma_list': [], 'ta_list':[], 'petri_net':petri_net, 'nxgraph':G}
-    __draw_pn_graph(G, petri_net)
+    __draw_pn_graph(G, petri_net, with_label)
     if marking:
         g_ax.spnp_data['marking'] = marking
         __redraw_marking(G, marking)
@@ -67,18 +68,29 @@ def draw_petri_net(petri_net, marking=None, *, interactive=True, layout_prog='do
         __redraw_trans_status(G, trans_status_map)
 
 
-def pygraphviz_layout(G,prog='dot'):
+def pygraphviz_layout(G,with_label, prog='dot'):
     import pygraphviz
     import re
     A=nx.nx_agraph.to_agraph(G)
+    node_height = g_place_r * 2
+    node_width = g_place_r * 2
+    num_nodes = A.number_of_nodes()
     for n in A.nodes_iter():
-        n.attr["height"] = g_place_r * 2.5 / 72.0 #inch to points
-        n.attr["width"] = g_place_r * 2.5  / 72.0
+        name_len = len(n.name)
+        label_size = name_len * g_fontsize if with_label else 0
+        n.attr["height"] = node_height / 72.0
+        n.attr["width"] = node_width / 72.0
+        n.attr["label_size"] = label_size
     A.layout(prog=prog)
     for n,d in G.nodes_iter(data=True):
         node=pygraphviz.Node(A,n)
         xx,yy=node.attr["pos"].split(',')
-        d["pos"]=(float(xx),float(yy))
+        xx, yy = float(xx), float(yy)
+        lsize = float(node.attr["label_size"])
+        x_node = xx
+        x_label = xx - (lsize + node_width) / 2.0
+        d["pos"]=(x_node,yy)
+        d["label_pos"] = (x_label, yy)
     for u,v in G.edges_iter():
         e = A.get_edge(u, v)
         edge_pos_str = re.split("[, ]+", e.attr["pos"])[1:]
@@ -137,22 +149,25 @@ def __redraw_marking(G, marking):
     g_ax.spnp_data['ma_list'] = ma_list
     g_ax.spnp_data['marking'] = marking
 
-def __draw_pn_graph(G, petri_net):
-    with plt.style.context({'lines.linewidth':2,
-                            'lines.color':'black',
-                            'patch.linewidth':2,
-                            'patch.facecolor':'black',
-                            'patch.edgecolor':'black',
-                            'font.size' : 12}):
+def __draw_pn_graph(G, petri_net, with_label):
+    with plt.style.context({'lines.linewidth':g_linewith,
+                            'lines.color':g_default_color,
+                            'patch.linewidth':g_linewith,
+                            'patch.facecolor':g_default_color,
+                            'patch.edgecolor':g_default_color,
+                            'font.size' : g_fontsize}):
         for n, d in G.nodes_iter(data=True):
             typ = d["type"]
             pos = d["pos"]
+            label_pos = d["label_pos"]
             if typ == "place":
                 __draw_place(pos)
             elif typ == "imme":
                 __draw_imme_trans(pos, petri_net, n)
             elif typ == "exp":
                 __draw_exp_trans(pos, petri_net, n)
+            if with_label:
+                __draw_label(label_pos, n)
         for src, dest, data in G.edges_iter(data=True):
             typ = data["type"]
             src_pos = G.node[src]["pos"]
@@ -173,14 +188,20 @@ def __draw_place(center):
     c = pat.Circle(center, g_place_r, fill=False)
     g_ax.add_patch(c)
 
-def __draw_token(center, num):
-    return g_ax.text(*center, str(num),
+def __draw_text(center, txt):
+    return g_ax.text(*center, txt,
             horizontalalignment='center',
             verticalalignment='center', color='black')
 
+def __draw_label(center, txt):
+    __draw_text(center, txt)
+
+def __draw_token(center, num):
+    return __draw_text(center, str(num))
+
 def __draw_imme_trans(center, petri_net, trans_name):
     x, y = center
-    c = pat.Rectangle( (x - g_imme_w / 2.0, y - g_imme_h / 2.0), g_imme_w, g_imme_h, fill=True, edgecolor='black', picker=10)
+    c = pat.Rectangle( (x - g_imme_w / 2.0, y - g_imme_h / 2.0), g_imme_w, g_imme_h, fill=True, edgecolor=g_default_color, picker=10)
     c.spnp_data = {'type':'imme', 'name':trans_name}
     g_ax.add_patch(c)
 

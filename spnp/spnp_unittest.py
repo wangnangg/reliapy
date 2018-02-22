@@ -29,15 +29,13 @@ class TestMethods(unittest.TestCase):
             for name, val in pn.get_rewards():
                 print(name, ":", val)
 
-
     def test_draw(self):
-        pn = pn_set.test_pn_three_class2()
+        pn = pn_set.test_pn_markov_modulated()
         pn.config_logger('/home/wangnan/workspace/reliapy/spnp/test_logger.conf')
-        import numpy as np
-        t = np.arange(0, 15, 1.0)
-        for i in t:
-            pn.solve(i)
-        display.show_petri_net(pn)
+        pn.add_inst_reward_func("P_block", lambda x : 1 if x.token("P_queue") == 9 else 0)
+        pn.solve()
+        print(pn.get_inst_reward("P_block"))
+        #display.show_petri_net(pn, with_label=True)
 
     def test_draw_marking_chain(self):
         for name, pn in self.petri_nets:

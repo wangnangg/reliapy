@@ -49,6 +49,8 @@ void config_logger(void *pn_ptr, const char *file);
 
 void set_halt_condition(void *pn_ptr, PyObject *halt_cond_func) throw(Exception);
 
+void bind_modifier(void *pn_ptr, PyObject *modifier_func) throw(Exception);
+
 unsigned int add_inst_reward(void *pn_ptr, PyObject *pyreward_func) throw(Exception);
 unsigned int add_cum_reward(void *pn_ptr, PyObject *pyreward_func) throw(Exception);
 double get_inst_reward(void *pn_ptr, unsigned int reward_index);
@@ -59,6 +61,7 @@ std::string fire_transition(void *pn_ptr, unsigned int trans_index, const std::s
 bool is_trans_enabled_in_marking(void *pn_ptr, unsigned int trans_index, const std::string& marking);
 std::string export_petri_net(void *pn_ptr);
 std::string export_init_marking(void *pn_ptr);
+std::string export_current_marking(PyObject *wrapped_context);
 
 double get_acyclic_mtta(void *pn_ptr);
 

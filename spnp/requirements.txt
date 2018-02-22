@@ -1,0 +1,4 @@
+networkx==1.9.1
+matplotlib
+pygraphviz
+numpy

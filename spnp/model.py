@@ -22,7 +22,7 @@ class PetriNet:
         reliapy.delete_petri_net(self.pn_ptr)
 
     def __wrap_context(self, __context):
-        return PetriNetState(__context, self.place_map, self.trans_map)
+        return PetriNetState(self, __context, self.place_map, self.trans_map)
 
     def set_option(self, *, steady_state_method=None,
                    transient_state_method=None,
@@ -250,10 +250,14 @@ class PetriNet:
     def config_logger(self, filename):
         reliapy.config_logger(self.pn_ptr, filename)
 
+    def bind_modifier(self, modifer_func):
+        reliapy.bind_modifier(self.pn_ptr, modifer_func)
+
 
 class PetriNetState:
-    def __init__(self, __context, place_map, trans_map):
+    def __init__(self, petri_net  ,__context, place_map, trans_map):
         self.__context = __context
+        self.petri_net = petri_net
         self.place_map = place_map
         self.trans_map = trans_map
 
@@ -270,6 +274,12 @@ class PetriNetState:
 
     def is_absorbing(self):
         return not reliapy.has_enbaled_trans(self.__context)
+
+    def get_marking(self):
+        return json_str2marking(self.petri_net, reliapy.export_current_marking(self.__context))
+
+    def marking2json_str(self, mk):
+        return marking2json_str(self.petri_net, mk)
 
 
 def marking2json_str(pn, mk):
